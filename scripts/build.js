@@ -23,6 +23,7 @@ body { margin:0; font-family:"Noto Serif SC","Source Han Serif SC",serif; backgr
 h1,h2,h3 { margin:0; font-weight:600; }
 h1 { margin-top:10px; font-size:clamp(2rem, 5vw, 3.4rem); line-height:1.15; }
 p, li { font-size:1.05rem; line-height:1.9; }
+ul, ol { padding-left: 1.4rem; margin: 0 0 1rem; }
 .lead { margin:20px 0 0; font-size:1.05rem; line-height:1.9; color:#2d2925; }
 .section-head { display:flex; justify-content:space-between; gap:16px; align-items:end; margin-bottom:18px; }
 .section-head p { margin:0; color:var(--muted); font-size:.95rem; }
@@ -62,6 +63,10 @@ function mdToHtml(md) {
     if (trimmed.startsWith('- ')) {
       const items = trimmed.split('\n').map(line => `<li>${escapeHtml(line.replace(/^-\s+/, ''))}</li>`).join('');
       return `<ul>${items}</ul>`;
+    }
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items = trimmed.split('\n').map(line => `<li>${escapeHtml(line.replace(/^\d+\.\s+/, ''))}</li>`).join('');
+      return `<ol>${items}</ol>`;
     }
     return `<p>${escapeHtml(trimmed)}</p>`;
   }).join('\n');
