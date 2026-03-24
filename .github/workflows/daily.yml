@@ -1,0 +1,37 @@
+name: Daily draft post
+
+on:
+  schedule:
+    - cron: '30 15 * * *' # 23:30 UTC+8
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create today's markdown draft if missing
+        run: |
+          DATE=$(date -u +%F)
+          FILE="content/posts/${DATE}.md"
+          if [ -f "$FILE" ]; then
+            echo "Post already exists: $FILE"
+            exit 0
+          fi
+          cp scripts/daily-template.md "$FILE"
+          sed -i "s/{{DATE}}/$DATE/g" "$FILE"
+          sed -i "s/{{TITLE}}/今天先留个记号/g" "$FILE"
+          sed -i "s/{{SUMMARY}}/今天的内容还没写满，先把日子立住。/g" "$FILE"
+      - name: Build site
+        run: node scripts/build.js
+      - name: Commit changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add content/posts *.html posts style.css
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: create daily draft"
+          git push
