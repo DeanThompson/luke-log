@@ -25,13 +25,11 @@ jobs:
           sed -i "s/{{DATE}}/$DATE/g" "$FILE"
           sed -i "s/{{TITLE}}/今天先留个记号/g" "$FILE"
           sed -i "s/{{SUMMARY}}/今天的内容还没写满，先把日子立住。/g" "$FILE"
-      - name: Build site
-        run: node scripts/build.js
       - name: Commit changes
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add content/posts *.html posts style.css
+          git add content/posts
           git diff --cached --quiet && exit 0
           git commit -m "chore: create daily draft"
           git push

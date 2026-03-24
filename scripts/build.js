@@ -4,7 +4,7 @@ import path from 'path';
 const root = process.cwd();
 const contentDir = path.join(root, 'content');
 const postsDir = path.join(contentDir, 'posts');
-const distDir = root;
+const distDir = path.join(root, 'dist');
 
 const css = `:root {
   --bg: #f6f1e8;
@@ -37,6 +37,10 @@ a:hover { color:var(--accent); border-bottom-color:var(--accent); }
 .archive-list li { margin-bottom: 10px; }
 @media (max-width:640px){ .container{ width:min(100vw - 20px,760px); padding-top:20px;} .hero,.section,.post{padding:22px;border-radius:20px;} .section-head{flex-direction:column;align-items:start;} }`;
 
+function resetDir(dir) {
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+}
 function ensureDir(dir) { fs.mkdirSync(dir, { recursive: true }); }
 function escapeHtml(str='') { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function slugFromFilename(file) { return file.replace(/\.md$/, '.html'); }
@@ -62,10 +66,12 @@ function mdToHtml(md) {
     return `<p>${escapeHtml(trimmed)}</p>`;
   }).join('\n');
 }
-function layout({ title, description='', body, nav=true }) {
-  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${escapeHtml(title)} · Luke Log</title><meta name="description" content="${escapeHtml(description)}" /><link rel="stylesheet" href="/luke-log/style.css" /></head><body><main class="container">${nav ? `<nav class="nav"><a href="/luke-log/">首页</a><a href="/luke-log/archive.html">归档</a><a href="/luke-log/about.html">About</a></nav>` : ''}${body}</main></body></html>`;
+function layout({ title, description='', body, depth=0, nav=true }) {
+  const prefix = depth === 0 ? './' : '../'.repeat(depth);
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${escapeHtml(title)} · Luke Log</title><meta name="description" content="${escapeHtml(description)}" /><link rel="stylesheet" href="${prefix}style.css" /></head><body><main class="container">${nav ? `<nav class="nav"><a href="${prefix}index.html">首页</a><a href="${prefix}archive.html">归档</a><a href="${prefix}about.html">About</a></nav>` : ''}${body}</main></body></html>`;
 }
 
+resetDir(distDir);
 ensureDir(path.join(distDir, 'posts'));
 fs.writeFileSync(path.join(distDir, 'style.css'), css);
 
@@ -73,14 +79,15 @@ const postFiles = fs.readdirSync(postsDir).filter(f => /^\d{4}-\d{2}-\d{2}\.md$/
 const posts = postFiles.map(file => {
   const raw = fs.readFileSync(path.join(postsDir, file), 'utf8');
   const { meta, body } = parseFrontmatter(raw);
-  return { file, ...meta, body, url: `/luke-log/posts/${slugFromFilename(file)}` };
+  return { file, ...meta, body, url: `posts/${slugFromFilename(file)}` };
 });
 
 for (const post of posts) {
   const html = layout({
     title: post.title,
     description: post.summary || '',
-    body: `<article class="post"><a class="back" href="/luke-log/">← 返回首页</a><p class="meta">${post.date} · ${post.tag || ''}</p><h1 class="title">${escapeHtml(post.title)}</h1><div class="content">${mdToHtml(post.body)}</div></article>`
+    depth: 1,
+    body: `<article class="post"><a class="back" href="../index.html">← 返回首页</a><p class="meta">${post.date} · ${post.tag || ''}</p><h1 class="title">${escapeHtml(post.title)}</h1><div class="content">${mdToHtml(post.body)}</div></article>`
   });
   fs.writeFileSync(path.join(distDir, 'posts', slugFromFilename(post.file)), html);
 }
